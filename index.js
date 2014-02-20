@@ -150,10 +150,7 @@ Vector.prototype.getTile = function(z, x, y, callback) {
         drawtime = +new Date;
 
         var opts = {z:z, x:x, y:y, scale:scale, buffer_size:256 * scale};
-        if (format === 'json') {
-            try { return callback(null, vtile.toJSON(), headers); }
-            catch(err) { return callback(err); }
-        } else if (format === 'utf') {
+        if (format === 'utf') {
             var surface = new mapnik.Grid(256,256);
             opts.layer = source._map.parameters.interactivity_layer;
             opts.fields = source._map.parameters.interactivity_fields.split(',');
@@ -165,6 +162,12 @@ Vector.prototype.getTile = function(z, x, y, callback) {
 
         vtile.parse(function(err) {
             if (err) return callback(err);
+
+            if (format === 'json') {
+                try { return callback(null, vtile.toJSON(), headers); }
+                catch(err) { return callback(err); }
+            }
+
             vtile.render(source._map, surface, opts, function(err, image) {
                 if (err) return callback(err);
                 if (format == 'svg') {
