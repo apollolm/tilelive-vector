@@ -84,12 +84,20 @@ describe('init', function() {
             done();
         });
     });
-    it('should fail without xml', function(done) {
+    // it('should fail without xml', function(done) {
+    //     new Vector({ backend: new Testsource() }, function(err) {
+    //         assert.equal(err.message, 'No xml');
+    //         done();
+    //     });
+    // });
+
+    it('should fail without xml or source', function(done) {
         new Vector({ backend: new Testsource() }, function(err) {
-            assert.equal(err.message, 'No xml');
+            assert.equal(err.message, 'No xml or source');
             done();
         });
     });
+
     it('should load with callback', function(done) {
         new Vector({ backend: new Testsource(), xml: xml.a }, function(err, source) {
             assert.ifError(err);
@@ -106,6 +114,7 @@ describe('init', function() {
             if (!--remaining) done();
         });
     });
+
     it('should get info', function(done) {
         new Vector({ backend: new Testsource(), xml: xml.a }, function(err, source) {
             assert.ifError(err);
@@ -123,6 +132,25 @@ describe('init', function() {
             });
         });
     });
+
+    // it('should sub in some mapnik xml if none is present', function(done) {
+    //     new Vector({ source:'test:///a' }, function(err, source) {
+    //         assert.ifError(err);
+    //         assert.ok(source);
+    //         source.getInfo(function(err, info) {
+    //             assert.ifError(err);
+    //             assert.equal('test-a', info.name);
+    //             assert.equal(0, info.minzoom);
+    //             assert.equal(8, info.maxzoom);
+    //             assert.deepEqual([0,0,2], info.center);
+    //             assert.deepEqual([-180,-85.0511,180,85.0511], info.bounds);
+    //             assert.deepEqual({"level2":"property"}, info.level1, 'JSON key stores deep attribute data');
+    //             assert.deepEqual(1, info.scale, 'JSON key does not overwrite other params');
+    //             done();
+    //         });
+    //     });
+    // });
+
     it('should update xml, backend', function(done) {
         new Vector({xml:xml.a}, function(err, source) {
             assert.ifError(err);

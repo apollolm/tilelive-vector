@@ -22,20 +22,37 @@ function md5(str) {
     return crypto.createHash('md5').update(str).digest('hex');
 };
 
-function Vector(uri, callback) {
-    if (!uri.xml) return callback && callback(new Error('No xml'));
+function Vector(opts, callback) {
+    var s = this;
+    if (!opts.xml && !opts.source) {
+        return callback && callback(new Error('No xml or source'));
+    }
 
-    this._uri = uri;
-    this._scale = uri.scale || undefined;
-    this._format = uri.format || undefined;
-    this._source = uri.source || undefined;
-    this._deflate = typeof uri.deflate === 'boolean' ? uri.deflate : true;
-    this._base = path.resolve(uri.base || __dirname);
+    // if (!opts.xml) {
+    //     opts.xml = require('fs').readFileSync(__dirname + "/test/fixtures/a.xml").toString()
+    // }
+
+    this.opts = opts;
+    this._scale = opts.scale;
+    this._format = opts.format;
+    this._source = opts.source;
+    this._deflate = typeof opts.deflate === 'boolean' ? opts.deflate : true;
+    this._base = path.resolve(opts.base || __dirname);
 
     if (callback) this.once('open', callback);
 
-    var s = this;
-    this.update(uri, function(err) { s.emit('open', err, s); });
+    if (opts.xml) {
+        s.update(opts, function(err) {
+            s.emit('open', err, s);
+        });
+    } else {
+        s.generateXmlFromSource(opts, function(err) {
+            if (err) return callback(err);
+            s.update(opts, function(err) {
+                s.emit('open', err, s);
+            });
+        });
+    }
 };
 util.inherits(Vector, require('events').EventEmitter);
 
@@ -55,46 +72,66 @@ Vector.prototype.open = function(callback) {
 
 // Allows in-place update of XML/backends.
 Vector.prototype.update = function(opts, callback) {
-    // If the XML has changed update the map.
-    if (!opts.xml || this._xml === opts.xml) return callback();
-
     var s = this;
+    s.generateMapFromXml(opts.xml, function(err){
+        if (err) return callback(err);
+        var source = s._map.parameters.source || s.opts.source
+        return s.getSource(source, callback);
+    });
+};
+
+Vector.prototype.generateMapFromXml = function(xml, callback) {
+    var s = this;
+    if (!xml || s._xml === xml) return callback();
     var map = new mapnik.Map(256,256);
-    map.fromString(opts.xml, {
+    var settings = {
         strict: true,
-        base: this._base + '/'
-    }, function(err) {
+        base: s._base + '/'
+    }
+    map.fromString(xml, settings, function(err) {
         if (err) {
             err.code = 'EMAPNIK';
             return callback(err);
         }
-
         delete s._info;
-        s._xml = opts.xml;
+        s._xml = xml;
         s._map = map;
-        s._md5 = crypto.createHash('md5').update(opts.xml).digest('hex');
-        s._format = opts.format || map.parameters.format || s._format || 'png8:m=h';
-        s._scale = opts.scale || +map.parameters.scale || s._scale || 1;
+        s._md5 = md5(xml);
+        s._format = s._format || map.parameters.format || 'png8:m=h';
+        s._scale = s._scale || +map.parameters.scale || 1;
+        s._source = s._source || map.parameters.source;
 
-        var source = map.parameters.source || opts.source;
-        if (!s._backend || s._source !== source) {
-            if (!source) return callback(new Error('No backend'));
-            new Backend({
-                uri: source,
-                scale: s._scale,
-                deflate: s._uri.deflate
-            }, function(err, backend) {
-                if (err) return callback(err);
-                s._source = map.parameters.source || opts.source;
-                s._backend = backend;
-                return callback();
-            });
-        } else {
-            return callback();
-        }
+        return callback()
     });
-    return;
 };
+
+Vector.prototype.getSource = function(source, callback) {
+    var s = this;
+    if (s._backend && s._source === source) return callback();
+    if (!source) return callback(new Error('No backend'));
+
+    new Backend({
+        uri: source,
+        scale: s._scale,
+        deflate: s.opts.deflate
+    }, function(err, backend) {
+        if (err) return callback(err);
+        s._source = source;
+        s._backend = backend;
+        return callback();
+    });
+}
+
+Vector.prototype.generateXmlFromSource = function(source, callback) {
+    var s = this;
+    s.getSource(source, function(err){
+        if (err) return callback(err);
+        s.getTile(0,0,0,function(err, tile, options){
+            if (err) return callback(err);
+            console.log("TILE!!", tile, options)
+        })
+    });
+}
 
 Vector.prototype.getTile = function(z, x, y, callback) {
     if (!this._map) return callback(new Error('Tilesource not loaded'));
