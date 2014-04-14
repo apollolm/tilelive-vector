@@ -44,15 +44,11 @@ function Vector(opts, callback) {
     if (callback) this.once('open', callback);
 
     if (opts.xml) {
-        s.update(opts, function(err) {
-            s.emit('open', err, s);
-        });
+        s.update(opts, function(err) { s.emit('open', err, s); });
     } else {
-        s.generateXmlFromSource(opts, function(err) {
+        s.generateXmlFromSource(opts.source, function(err) {
             if (err) return callback(err);
-            s.update(opts, function(err) {
-                s.emit('open', err, s);
-            });
+            s.update(opts, function(err) { s.emit('open', err, s); });
         });
     }
 };
@@ -108,18 +104,18 @@ Vector.prototype.generateMapFromXml = function(xml, callback) {
     });
 };
 
-Vector.prototype.getSource = function(source, callback) {
+Vector.prototype.getSource = function(uri, callback) {
     var s = this;
-    if (s._backend && s._source === source) return callback();
-    if (!source) return callback(new Error('No backend'));
+    if (s._backend && s._source === uri) return callback();
+    if (!uri) return callback(new Error('No backend'));
 
     new Backend({
-        uri: source,
+        uri: uri,
         scale: s._scale,
         deflate: s.opts.deflate
     }, function(err, backend) {
         if (err) return callback(err);
-        s._source = source;
+        s._source = uri;
         s._backend = backend;
         return callback();
     });
@@ -129,9 +125,17 @@ Vector.prototype.generateXmlFromSource = function(source, callback) {
     var s = this;
     s.getSource(source, function(err){
         if (err) return callback(err);
-        s.getTile(0,0,0,function(err, tile, options){
+        s._backend.getInfo(function(err, info){
             if (err) return callback(err);
-            console.log("TILE!!", tile, options)
+            if (!info.vector_layers) return callback("source must contain a vector_layers property");
+            var layerTemplate = fs.readFileSync('./templates/layer.xml').toString()
+            var mapTemplate = fs.readFileSync('./templates/map.xml').toString()
+            var layers = info.vector_layers.map(function(layer){
+                return util.format(layerTemplate, layer.id, layer.id, layer.id)
+            })
+            layers = layers.join("\n")
+            var xml = util.format(mapTemplate, layers)
+            return s.generateMapFromXml(xml, callback)
         })
     });
 }
