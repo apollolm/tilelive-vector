@@ -87,12 +87,6 @@ describe('init', function() {
             done();
         });
     });
-    // it('should fail without xml', function(done) {
-    //     new Vector({ backend: new Testsource() }, function(err) {
-    //         assert.equal(err.message, 'No xml');
-    //         done();
-    //     });
-    // });
 
     it('should fail without xml or source', function(done) {
         new Vector({ backend: new Testsource() }, function(err) {

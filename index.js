@@ -30,10 +30,6 @@ function Vector(opts, callback) {
         return callback && callback(new Error('No xml or source'));
     }
 
-    // if (!opts.xml) {
-    //     opts.xml = require('fs').readFileSync(__dirname + "/test/fixtures/a.xml").toString()
-    // }
-
     this.opts = opts;
     this._scale = opts.scale;
     this._format = opts.format;
