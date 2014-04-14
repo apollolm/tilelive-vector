@@ -62,6 +62,7 @@ Vector.registerProtocols = function(tilelive) {
     tilelive.protocols['vector:'] = Vector;
     tilelive.protocols['tm2z:'] = tm2z;
     tilelive.protocols['tm2z+http:'] = tm2z;
+    tilelive.protocols['http:'] = TileJSON;
 };
 
 // Helper for callers to ensure source is open. This is not built directly
