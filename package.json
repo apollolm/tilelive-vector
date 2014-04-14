@@ -18,14 +18,16 @@
     "tar": "~0.1.18",
     "request": "~2.27.0",
     "numeral": "~1.5.3",
-    "sphericalmercator": "~1.0.2"
+    "sphericalmercator": "~1.0.2",
+    "tilejson": "^0.6.3"
   },
   "devDependencies": {
     "mocha": "1.3.x",
-    "tilejson": "~0.6.0"
+    "tilejson": "~0.6.0",
+    "open": "0.0.5"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha -R spec"
+    "test": "node_modules/.bin/mocha -R spec --watch"
   },
   "engines": {
     "node": "0.8.x || 0.10.x"
