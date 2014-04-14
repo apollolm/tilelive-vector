@@ -132,7 +132,6 @@ describe('init', function() {
 
     it('should auto-generate mapnik xml if none is present', function(done) {
         var url = 'http://a.tiles.mapbox.com/v3/mapbox.mapbox-streets-v4.json'
-        // Vector.registerProtocols(tilelive);
         tilelive.protocols['http:'] = TileJSON;
 
         // Fonts should already be loaded
