@@ -18,6 +18,8 @@ module.exports.tm2z = tm2z;
 module.exports.mapnik = mapnik;
 module.exports.Backend = Backend;
 
+mapnik.register_fonts(path.resolve('./fonts'));
+
 function md5(str) {
     return crypto.createHash('md5').update(str).digest('hex');
 };
