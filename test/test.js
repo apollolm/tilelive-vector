@@ -6,6 +6,9 @@ var Vector = require('..');
 var path = require('path');
 var fs = require('fs');
 var imageEqualsFile = require('./image.js');
+var TileJSON = require('tilejson');
+var mapnik = require('mapnik');
+var open = require("open");
 
 // Load fixture data.
 var xml = {
@@ -133,23 +136,48 @@ describe('init', function() {
         });
     });
 
-    // it('should sub in some mapnik xml if none is present', function(done) {
-    //     new Vector({ source:'test:///a' }, function(err, source) {
-    //         assert.ifError(err);
-    //         assert.ok(source);
-    //         source.getInfo(function(err, info) {
-    //             assert.ifError(err);
-    //             assert.equal('test-a', info.name);
-    //             assert.equal(0, info.minzoom);
-    //             assert.equal(8, info.maxzoom);
-    //             assert.deepEqual([0,0,2], info.center);
-    //             assert.deepEqual([-180,-85.0511,180,85.0511], info.bounds);
-    //             assert.deepEqual({"level2":"property"}, info.level1, 'JSON key stores deep attribute data');
-    //             assert.deepEqual(1, info.scale, 'JSON key does not overwrite other params');
-    //             done();
-    //         });
-    //     });
-    // });
+    it('should auto-generate mapnik xml if none is present', function(done) {
+        var url = 'http://a.tiles.mapbox.com/v3/mapbox.mapbox-streets-v4.json'
+        // Vector.registerProtocols(tilelive);
+        tilelive.protocols['http:'] = TileJSON;
+
+        // Fonts should already be loaded
+        assert.ok(!mapnik.register_fonts(path.resolve('../fonts')));
+
+        new Vector({ source:url }, function(err, source) {
+            assert.ifError(err);
+            assert.ok(source);
+            assert.ok(source._xml);
+            assert.ok(source._md5);
+
+            var spots = [
+                "12-654-1583",
+                "12-655-1582",
+                "16-10483-25338"
+            ]
+            var s = this
+            var i
+
+            function render(coords) {
+                var z = coords.split("-")[0]
+                var x = coords.split("-")[1]
+                var y = coords.split("-")[2]
+
+                source.getTile(z, x, y, function(err, buffer, headers) {
+                    assert.ifError(err);
+                    var thumb = "./test/xray/" + coords + ".png"
+                    fs.writeFileSync(thumb, buffer)
+                    open(thumb)
+                    if (coords == spots[spots.length - 1]) done();
+                })
+            }
+
+            for (i in spots) {
+                render(spots[i])
+            }
+
+        });
+    });
 
     it('should update xml, backend', function(done) {
         new Vector({xml:xml.a}, function(err, source) {
@@ -341,4 +369,3 @@ describe('tiles', function() {
         done();
     });
 });
-
