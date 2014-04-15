@@ -30,6 +30,11 @@ function Vector(opts, callback) {
         return callback && callback(new Error('No xml or source'));
     }
 
+    // Umm..
+    if (opts.source && opts.source.opts && opts.source.opts.source) {
+        opts = opts.source.opts
+    }
+
     this.opts = opts;
     this._scale = opts.scale;
     this._format = opts.format;

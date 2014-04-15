@@ -95,6 +95,18 @@ describe('init', function() {
         });
     });
 
+    it('should accept an already-instantianted source object instead of a URI', function(done) {
+        new Vector({ source:'test:///a', xml: xml.c }, function(err, source) {
+            assert.ifError(err);
+            assert.ok(source);
+            new Vector({source:source}, function(err, source) {
+                assert.ifError(err);
+                assert.ok(source);
+                done();
+            });
+        });
+    });
+
     it('should load with callback', function(done) {
         new Vector({ backend: new Testsource(), xml: xml.a }, function(err, source) {
             assert.ifError(err);
@@ -102,6 +114,7 @@ describe('init', function() {
             done();
         });
     });
+
     it('#open should call all listeners', function(done) {
         var v = new Vector({ backend: new Testsource(), xml: xml.a });
         var remaining = 3;
