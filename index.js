@@ -30,9 +30,7 @@ function Vector(uri, callback) {
     this._scale = uri.scale || undefined;
     this._format = uri.format || undefined;
     this._source = uri.source || undefined;
-    this._maxAge = typeof uri.maxAge === 'number' ? uri.maxAge : 60e3;
     this._deflate = typeof uri.deflate === 'boolean' ? uri.deflate : true;
-    this._reap = typeof uri.reap === 'number' ? uri.reap : 60e3;
     this._base = path.resolve(uri.base || __dirname);
 
     if (callback) this.once('open', callback);
@@ -54,6 +52,10 @@ Vector.registerProtocols = function(tilelive) {
 Vector.prototype.open = function(callback) {
     if (this._map) return callback(null, this);
     this.once('open', callback);
+};
+
+Vector.prototype.close = function(callback) {
+    return callback();
 };
 
 // Allows in-place update of XML/backends.
@@ -85,8 +87,6 @@ Vector.prototype.update = function(opts, callback) {
             new Backend({
                 uri: source,
                 scale: s._scale,
-                reap: s._uri.reap,
-                maxAge: s._uri.maxAge,
                 deflate: s._uri.deflate
             }, function(err, backend) {
                 if (err) return callback(err);

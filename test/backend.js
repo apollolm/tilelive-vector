@@ -36,6 +36,10 @@ zlib.deflate(new Buffer('asdf'), function(err, deflated) {
     tiles.a['1.0.2'] = new Buffer('asdf'); // invalid deflate
     tiles.a['1.0.3'] = deflated;           // invalid protobuf
 });
+zlib.deflate(new Buffer(0), function(err, deflated) {
+    if (err) throw err;
+    tiles.a['0.0.1'] = deflated;
+});
 
 var now = new Date;
 
@@ -88,8 +92,6 @@ describe('backend', function() {
         new Backend({ uri:'test:///a' }, function(err, source) {
             assert.ifError(err);
             assert.equal(1, source._scale);
-            assert.equal(60e3, source._reap);
-            assert.equal(60e3, source._maxAge);
             assert.equal(true, source._deflate);
             assert.equal(0, source._minzoom);
             assert.equal(1, source._maxzoom);
@@ -100,8 +102,6 @@ describe('backend', function() {
     it('sync default opts', function(done) {
         var source = new Backend({ source: new Testsource('a') });
         assert.equal(1, source._scale);
-        assert.equal(60e3, source._reap);
-        assert.equal(60e3, source._maxAge);
         assert.equal(true, source._deflate);
         assert.equal(0, source._minzoom);
         assert.equal(22, source._maxzoom);
@@ -114,8 +114,6 @@ describe('backend', function() {
             maskLevel: 4
         });
         assert.equal(1, source._scale);
-        assert.equal(60e3, source._reap);
-        assert.equal(60e3, source._maxAge);
         assert.equal(true, source._deflate);
         assert.equal(2, source._minzoom);
         assert.equal(22, source._maxzoom);
@@ -151,7 +149,8 @@ describe('tiles', function() {
         // 2.0.0, 2.0.1 test overzooming.
         // 1.1.2, 1.1.3 test that solid bg tiles are generated even when no
         // backend tile exists.
-        a: ['0.0.0', '1.0.0', '1.0.1', '1.1.0', '1.1.1', '1.1.2', '1.1.3', '2.0.0', '2.0.1'],
+        // 0.0.1 test that solid bg tiles are generated for 0-length protobufs.
+        a: ['0.0.0', '0.0.1', '1.0.0', '1.0.1', '1.1.0', '1.1.1', '1.1.2', '1.1.3', '2.0.0', '2.0.1'],
         // 2.1.1 should use z2 vector tile -- a coastline shapefile
         // 2.1.2 should use maskLevel -- place dots, like the others
         b: ['0.0.0', '1.0.0', '1.0.1', '1.1.0', '1.1.1', '2.1.1', '2.1.2'],
@@ -206,87 +205,3 @@ describe('tiles', function() {
     });
 });
 
-describe('cache', function() {
-    var source = new Backend({
-        source: new Testsource('a'),
-        minzoom: 0,
-        maxzoom: 1,
-        maxAge: 1000
-    });
-    var requests = ['0.0.0', '1.0.0', '1.0.1', '1.1.0', '1.1.1', '2.0.0', '2.0.1'];
-    requests.forEach(function(key) {
-        var z = key.split('.')[0] | 0;
-        var x = key.split('.')[1] | 0;
-        var y = key.split('.')[2] | 0;
-        before(function(done) {
-            // Request each tile twice.
-            source.getTile(z, x, y, function(err, buffer, headers) {
-                assert.ifError(err);
-                source.getTile(z, x, y, function(err, buffer, headers) {
-                    assert.ifError(err);
-                    done();
-                });
-            });
-        });
-    });
-    it('lockingcache should singleton requests to backend', function(done) {
-        assert.equal(source._source.stats['0.0.0'], 1);
-        assert.equal(source._source.stats['1.0.0'], 1);
-        assert.equal(source._source.stats['1.0.1'], 1);
-        assert.equal(source._source.stats['1.1.0'], 1);
-        assert.equal(source._source.stats['1.1.1'], 1);
-        assert.equal(source._source.stats['2.0.0'], undefined);
-        assert.equal(source._source.stats['2.0.1'], undefined);
-        done();
-    });
-    it('cached tiles should expire after maxAge', function(done) {
-        source.getTile(0, 0, 0, function(err, buffer, headers) {
-            assert.ifError(err);
-            setTimeout(function() {
-                source.getTile(1, 0, 0, function(err, buffer, headers) {
-                    assert.ifError(err);
-                    assert.equal(source._source.stats['0.0.0'], 1);
-                    assert.equal(source._source.stats['1.0.0'], 2);
-                    done();
-                });
-            }, 1000);
-        });
-    });
-});
-
-describe('reap', function() {
-    var source = new Backend({
-        source: new Testsource('a'),
-        minzoom: 0,
-        maxzoom: 1,
-        maxAge: 1000,
-        reap: 500
-    });
-    var requests = ['0.0.0', '1.0.0', '1.0.1', '1.1.0', '1.1.1'];
-    requests.forEach(function(key) {
-        var z = key.split('.')[0] | 0;
-        var x = key.split('.')[1] | 0;
-        var y = key.split('.')[2] | 0;
-        before(function(done) {
-            source.getTile(z, x, y, function(err, buffer, headers) {
-                assert.ifError(err);
-                done();
-            });
-        });
-    });
-    it('backend should have a populated cache', function(done) {
-        assert.equal(Object.keys(source._vectorCache).length, 5);
-        done();
-    });
-    it('backend should reap expired tiles', function(done) {
-        setTimeout(function() {
-            source.getTile(0, 0, 0, function(err, buffer, headers) {
-                assert.ifError(err);
-                setTimeout(function() {
-                    assert.equal(Object.keys(source._vectorCache).length, 0);
-                    done();
-                }, 500);
-            });
-        }, 500);
-    });
-});

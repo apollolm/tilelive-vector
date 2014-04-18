@@ -1,5 +1,17 @@
 # Changlog
 
+## 0.10.0
+
+ - Loosen node-mapnik semver to any ~1.4.0 version
+
+## 0.9.0
+
+ - Backend: remove caching of VT tiles
+
+## 0.8.0
+
+ - Use lru-cache to replace internal backend VT cache
+
 ## 0.7.0
 
  - Update to mapnik 1.4.x (packaged binaries!)
